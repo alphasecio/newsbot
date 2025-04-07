@@ -19,6 +19,7 @@ MAILBOX_PASS = os.getenv("MAILBOX_PASS")
 MAILBOX_FOLDER = os.getenv("MAILBOX_FOLDER", "INBOX")
 MATCH_CRITERIA = os.getenv("MATCH_CRITERIA", '(FROM "googlealerts-noreply@google.com" UNSEEN)')
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 EMAIL_FROM = os.getenv("EMAIL_FROM")
@@ -117,7 +118,7 @@ def summarize_url(url):
             return None
         else:
             summary = openai_client.responses.create(
-                model="gpt-4o-mini",
+                model=OPENAI_MODEL,
                 input=[
                     {"role": "system", "content": "Summarize the article succinctly in a maximum of 100-150 words."},
                     {"role": "user", "content": scrape_result.get("markdown", "")}
@@ -147,9 +148,16 @@ def extract_articles_from_email(email_body):
     try:
         logging.info("Processing email...")
         response = openai_client.responses.create(
-            model="gpt-4o-mini",
+            model=OPENAI_MODEL,
             input=[
-                {"role": "system", "content": "Extract only article titles and their corresponding links from the email newsletter. Include all articles. Do not include profile links, subscription links, or any other unnecessary links."},
+                {"role": "system", 
+                "content": (
+                    "You are parsing a newsletter email. Extract only article titles and their corresponding links."
+                    "Exclude summary paragraphs, introductory content, 'view in browser' links, footers, and links that are not actual articles."
+                    "Only include links that clearly point to individual articles, blog posts, or news stories."
+                    "Skip the link corresponding to the newsletter title, if it happens to be a hyperlink."
+                    "Each article must have a clear title (not generic phrases like 'Read more' or 'See details')."
+                )},
                 {"role": "user", "content": email_body}
             ],
             text={
@@ -209,31 +217,31 @@ def main():
             articles = extract_articles_from_email(alert['body'])
             all_articles.extend(articles)
 
-        if all_articles:
-            try:
-                email_body_parts = []
-                for article in all_articles:
-                    try:
-                        rate_limit_firecrawl()
-                        summary = summarize_url(article['link'])
-                        article_html = f"""
-                            <strong>{article['title']}</strong>
-                            <p>{summary.output_text}</p>
-                            <hr>
-                        """
-                        email_body_parts.append(article_html)
-
-                    except Exception as e:
-                        logging.error(f"Error summarizing article '{article.get('title', 'Unknown')}': {str(e)}")
-                        continue
-            except Exception as e:
-                logging.error(f"Error generating content summaries: {str(e)}")
-
-            if email_body_parts:
-                body = "\n".join(email_body_parts)
-                send_email(body)
-            else:
-                logging.info("No summaries generated, skipping email.")
+            if all_articles:
+                try:
+                    email_body_parts = []
+                    for article in all_articles:
+                        try:
+                            rate_limit_firecrawl()
+                            summary = summarize_url(article['link'])
+                            article_html = f"""
+                                <strong>{article['title']}</strong>
+                                <p>{summary.output_text}</p>
+                                <hr>
+                            """
+                            email_body_parts.append(article_html)
+    
+                        except Exception as e:
+                            logging.error(f"Error summarizing article '{article.get('title', 'Unknown')}': {str(e)}")
+                            continue
+                except Exception as e:
+                    logging.error(f"Error generating content summaries: {str(e)}")
+    
+                if email_body_parts:
+                    body = "\n".join(email_body_parts)
+                    send_email(body)
+                else:
+                    logging.info("No summaries generated, skipping email.")
     
     finally:
         try:
