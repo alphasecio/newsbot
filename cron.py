@@ -77,7 +77,7 @@ def fetch_mails(mailbox):
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
-                            if part.get_content_type() == "text/plain":
+                            if part.get_content_type() == "text/html":
                                 body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
                                 break
                     else:
