@@ -212,8 +212,8 @@ def main():
             logging.info("No new emails found.")
             return
         
-        all_articles = []
         for i, alert in enumerate(mails):
+            all_articles = []
             articles = extract_articles_from_email(alert['body'])
             all_articles.extend(articles)
 
