@@ -150,7 +150,7 @@ def extract_articles_from_email(email_body):
             model="gpt-4o-mini",
             input=[
                 {"role": "system", "content": "Extract only article titles and their corresponding links from the email newsletter. Include all articles. Do not include profile links, subscription links, or any other unnecessary links."},
-                {"role": "user", "content": alert['body']}
+                {"role": "user", "content": email_body}
             ],
             text={
                 "format": {
