@@ -12,24 +12,24 @@ logging.basicConfig(
 )
 
 # Environment variables
-IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.mailo.com")
-IMAP_PORT = int(os.getenv("IMAP_PORT", 993))
-MAILBOX_USER = os.getenv("MAILBOX_USER")
-MAILBOX_PASS = os.getenv("MAILBOX_PASS")
-MAILBOX_FOLDER = os.getenv("MAILBOX_FOLDER", "INBOX")
-MATCH_CRITERIA = os.getenv("MATCH_CRITERIA", '(FROM "googlealerts-noreply@google.com" UNSEEN)')
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
-EMAIL_FROM = os.getenv("EMAIL_FROM")
-EMAIL_TO = os.getenv("EMAIL_TO")
-EMAIL_SUBJECT = os.getenv("EMAIL_SUBJECT", "Newsletter Summary")
+IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.mailo.com").strip()
+IMAP_PORT = int(os.getenv("IMAP_PORT", 993)).strip()
+MAILBOX_USER = os.getenv("MAILBOX_USER").strip()
+MAILBOX_PASS = os.getenv("MAILBOX_PASS").strip()
+MAILBOX_FOLDER = os.getenv("MAILBOX_FOLDER", "INBOX").strip()
+MATCH_CRITERIA = os.getenv("MATCH_CRITERIA", '(FROM "googlealerts-noreply@google.com" UNSEEN)').strip()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY").strip()
+RESEND_API_KEY = os.getenv("RESEND_API_KEY").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM").strip()
+EMAIL_TO = os.getenv("EMAIL_TO").strip()
 
 # Global clients
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 firecrawl_client = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
-
+resend.api_key = RESEND_API_KEY       
+    
 def connect_to_mailbox():
     try:
         logging.info("Connecting to mailbox...")
@@ -129,15 +129,14 @@ def summarize_url(url):
         logging.error(f"Error while summarizing URL: {e}")
         return f"Error retrieving or processing content: {str(e)}"
 
-def send_email(email_body):
-    resend.api_key = RESEND_API_KEY       
+def send_email(email_subject, email_body):
     logging.info("Sending email...")
     try:
         email = resend.Emails.send({
             "from": EMAIL_FROM,
             "to": [EMAIL_TO],
-            "subject": EMAIL_SUBJECT,
-            "html": f"{email_body}"
+            "subject": email_subject,
+            "html": email_body
         })
         return True
     except Exception as e:
@@ -238,8 +237,9 @@ def main():
                     logging.error(f"Error generating content summaries: {str(e)}")
     
                 if email_body_parts:
+                    subject = f"Summary: {alert['subject']}"
                     body = "\n".join(email_body_parts)
-                    send_email(body)
+                    send_email(subject, body)
                 else:
                     logging.info("No summaries generated, skipping email.")
     
