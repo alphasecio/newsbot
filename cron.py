@@ -13,7 +13,7 @@ logging.basicConfig(
 
 # Environment variables
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.mailo.com").strip()
-IMAP_PORT = int(os.getenv("IMAP_PORT", 993)).strip()
+IMAP_PORT = int(os.getenv("IMAP_PORT", 993).strip())
 MAILBOX_USER = os.getenv("MAILBOX_USER").strip()
 MAILBOX_PASS = os.getenv("MAILBOX_PASS").strip()
 MAILBOX_FOLDER = os.getenv("MAILBOX_FOLDER", "INBOX").strip()
